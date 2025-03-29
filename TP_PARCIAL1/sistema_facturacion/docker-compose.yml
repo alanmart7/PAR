@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: 'facturacionPAR'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'admin'
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_NAME: 'facturacionPAR'
+      DATABASE_USER: 'postgres'
+      DATABASE_PASSWORD: 'admin'
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
