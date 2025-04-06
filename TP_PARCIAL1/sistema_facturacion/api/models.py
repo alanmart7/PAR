@@ -22,3 +22,20 @@ class Factura(models.Model):
 
     def __str__(self):
         return self.numero
+
+class Reporte(models.Model):
+    nombre = models.CharField(max_length=100)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    contenido = models.TextField()
+
+    def __str__(self):
+        return self.nombre
+
+class Proveedor(models.Model):
+    nombre = models.CharField(max_length=100)
+    correo = models.EmailField(unique=True)
+    telefono = models.CharField(max_length=15)
+
+    def __str__(self):
+        return self.nombre
