@@ -5,28 +5,6 @@ from .models import Cliente, Producto, Factura, Proveedor, Reporte
 from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer
 from rest_framework.views import APIView
 
-'''
-class ClienteViewSet(viewsets.ModelViewSet):
-    queryset = Cliente.objects.all()
-    serializer_class = ClienteSerializer
-
-class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.all()
-    serializer_class = ProductoSerializer
-
-class FacturaViewSet(viewsets.ModelViewSet):
-    queryset = Factura.objects.all()
-    serializer_class = FacturaSerializer
-
-
-class ProveedorViewSet(viewsets.ModelViewSet):
-    queryset = Proveedor.objects.all()
-    serializer_class = ProveedorSerializer
-
-class ReporteViewSet(viewsets.ModelViewSet):
-    queryset = Reporte.objects.all()
-    serializer_class = ReporteSerializer
-'''
 # Lista de clientes GET Y POST
 class ClienteList(APIView):
     def get(self, request):
