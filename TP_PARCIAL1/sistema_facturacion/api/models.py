@@ -9,8 +9,9 @@ class Cliente(models.Model):
 
 class Producto(models.Model):
     nombre = models.CharField(max_length=100)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    descripcion = models.TextField(blank=True, null=True)
+    precio_compra = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
+    descripcion = models.TextField()
 
     def __str__(self):
         return self.nombre
@@ -44,6 +45,14 @@ class Compra(models.Model):
     proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     fecha = models.DateField()
+    cantidad = models.PositiveIntegerField(default=1)  # <- Nuevo campo
 
     def __str__(self):
-        return f"Compra de {self.producto.nombre} por {self.proveedor.nombre} en {self.fecha}"
+        return f"Compra de {self.cantidad} x {self.producto.nombre} por {self.proveedor.nombre} en {self.fecha}"
+
+class Inventario(models.Model):
+    producto = models.OneToOneField(Producto, on_delete=models.CASCADE, related_name='inventario')
+    stock = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.producto.nombre}: {self.stock} unidades"

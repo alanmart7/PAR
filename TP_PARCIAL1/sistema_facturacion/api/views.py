@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra
-from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario
+from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer, InventarioSerializer
 from rest_framework.views import APIView
 
 # Lista de clientes GET Y POST
@@ -52,44 +52,65 @@ class ClienteDetail(APIView):
 # Lista de productos GET y POST
 class ProductoList(APIView):
     def get(self, request):
-        productos = Producto.objects.all()  # Obtener todos los productos
-        # Serializar manualmente los datos de los productos
-        data = [{"id": producto.id, "nombre": producto.nombre, "precio": str(producto.precio), "descripcion": producto.descripcion} for producto in productos]
+        productos = Producto.objects.all()
+        data = [
+            {
+                "id": p.id,
+                "nombre": p.nombre,
+                "precio_compra": str(p.precio_compra),
+                "precio_venta": str(p.precio_venta),
+                "descripcion": p.descripcion
+            }
+            for p in productos
+        ]
         return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        nombre = request.data.get('nombre') 
-        precio = request.data.get('precio')
-        descripcion = request.data.get('descripcion')  
-        producto = Producto.objects.create(nombre=nombre, precio=precio, descripcion=descripcion)  # Crear un nuevo producto
-        return Response({"id": producto.id, "nombre": producto.nombre, "precio": str(producto.precio), "descripcion": producto.descripcion}, status=status.HTTP_201_CREATED)
-
+        serializer = ProductoSerializer(data=request.data)
+        if serializer.is_valid():
+            producto = serializer.save()  # Esto llama al método create del serializer
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 # Detalles de producto GET, PUT y DELETE por un ID específico
 class ProductoDetail(APIView):
     def get(self, request, pk):
         try:
-            producto = Producto.objects.get(pk=pk)  # Buscar producto por ID
-            data = {"id": producto.id, "nombre": producto.nombre, "precio": str(producto.precio), "descripcion": producto.descripcion}
+            p = Producto.objects.get(pk=pk)
+            data = {
+                "id": p.id,
+                "nombre": p.nombre,
+                "precio_compra": str(p.precio_compra),
+                "precio_venta": str(p.precio_venta),
+                "descripcion": p.descripcion
+            }
             return Response(data, status=status.HTTP_200_OK)
         except Producto.DoesNotExist:
             return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, pk):
         try:
-            producto = Producto.objects.get(pk=pk)  # Buscar producto por ID
-            producto.nombre = request.data.get('nombre', producto.nombre)
-            producto.precio = request.data.get('precio', producto.precio)
-            producto.descripcion = request.data.get('descripcion', producto.descripcion)
-            producto.save()   # Actualizar campos del producto 
-            data = {"id": producto.id, "nombre": producto.nombre, "precio": str(producto.precio), "descripcion": producto.descripcion}
+            p = Producto.objects.get(pk=pk)
+            p.nombre = request.data.get('nombre', p.nombre)
+            p.precio_compra = request.data.get('precio_compra', p.precio_compra)
+            p.precio_venta = request.data.get('precio_venta', p.precio_venta)
+            p.descripcion = request.data.get('descripcion', p.descripcion)
+            p.save()
+            data = {
+                "id": p.id,
+                "nombre": p.nombre,
+                "precio_compra": str(p.precio_compra),
+                "precio_venta": str(p.precio_venta),
+                "descripcion": p.descripcion
+            }
             return Response(data, status=status.HTTP_200_OK)
         except Producto.DoesNotExist:
             return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, pk):
         try:
-            producto = Producto.objects.get(pk=pk) # Buscar producto por ID
-            producto.delete()  # Eliminar producto
+            p = Producto.objects.get(pk=pk)
+            p.delete()
             return Response({"message": "Producto eliminado"}, status=status.HTTP_204_NO_CONTENT)
         except Producto.DoesNotExist:
             return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
@@ -253,6 +274,8 @@ class CompraList(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        print("📦 Datos recibidos en el POST de compras:")
+        print(request.data)  # <-- Este es el log importante
         serializer = CompraSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -260,7 +283,7 @@ class CompraList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Detalle, actualización y eliminación por ID
-class CompraDetail(APIView):
+class CompraDetail(APIView):    
     def get_object(self, pk):
         try:
             return Compra.objects.get(pk=pk)
@@ -290,3 +313,7 @@ class CompraDetail(APIView):
             return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         compra.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class InventarioViewSet(viewsets.ModelViewSet):
+    queryset = Inventario.objects.all()
+    serializer_class = InventarioSerializer
