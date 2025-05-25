@@ -39,3 +39,11 @@ class Proveedor(models.Model):
 
     def __str__(self):
         return self.nombre
+
+class Compra(models.Model):
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    fecha = models.DateField()
+
+    def __str__(self):
+        return f"Compra de {self.producto.nombre} por {self.proveedor.nombre} en {self.fecha}"

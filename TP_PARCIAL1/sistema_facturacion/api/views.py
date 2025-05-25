@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Producto, Factura, Proveedor, Reporte
-from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra
+from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer
 from rest_framework.views import APIView
 
 # Lista de clientes GET Y POST
@@ -14,6 +14,7 @@ class ClienteList(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        print("Datos recibidos en POST:", request.data)  # 🔍 Agregar esta línea
         nombre = request.data.get('nombre')
         correo = request.data.get('correo')
         cliente = Cliente.objects.create(nombre=nombre, correo=correo)   # Crear un nuevo cliente
@@ -243,3 +244,49 @@ class ReporteDetail(APIView):
             return Response({"message": "Reporte eliminado"}, status=status.HTTP_204_NO_CONTENT)
         except Reporte.DoesNotExist:
             return Response({"error": "Reporte no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        
+# Lista y creación de compras
+class CompraList(APIView):
+    def get(self, request):
+        compras = Compra.objects.all()
+        serializer = CompraSerializer(compras, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = CompraSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Detalle, actualización y eliminación por ID
+class CompraDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Compra.objects.get(pk=pk)
+        except Compra.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        compra = self.get_object(pk)
+        if not compra:
+            return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CompraSerializer(compra)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        compra = self.get_object(pk)
+        if not compra:
+            return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CompraSerializer(compra, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        compra = self.get_object(pk)
+        if not compra:
+            return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        compra.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

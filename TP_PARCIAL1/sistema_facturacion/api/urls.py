@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail
+from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail, CompraList, CompraDetail
 
 '''
 from .views import ClienteViewSet, ProductoViewSet, FacturaViewSet,
@@ -33,4 +33,8 @@ urlpatterns = [
     # Reportes
     path('reportes/', ReporteList.as_view(), name='reporte-list'), 
     path('reportes/<int:pk>/', ReporteDetail.as_view(), name='reporte-detail'), 
+    
+    #Compras
+    path('compras/', CompraList.as_view()),
+    path('compras/<int:pk>/', CompraDetail.as_view()),
 ]
