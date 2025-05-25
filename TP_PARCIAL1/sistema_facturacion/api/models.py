@@ -50,6 +50,15 @@ class Compra(models.Model):
     def __str__(self):
         return f"Compra de {self.cantidad} x {self.producto.nombre} por {self.proveedor.nombre} en {self.fecha}"
 
+class Venta(models.Model):
+    fecha = models.DateField()
+    cantidad = models.PositiveIntegerField()
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, db_column='producto_id')
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_column='cliente_id')
+
+    def __str__(self):
+        return f"Venta #{self.id} - Producto: {self.producto.nombre} - Cliente: {self.cliente.nombre}"
+    
 class Inventario(models.Model):
     producto = models.OneToOneField(Producto, on_delete=models.CASCADE, related_name='inventario')
     stock = models.PositiveIntegerField(default=0)

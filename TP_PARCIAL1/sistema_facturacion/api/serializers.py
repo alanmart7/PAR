@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -48,8 +48,14 @@ class CompraSerializer(serializers.ModelSerializer):
         inventario.save()
         
         return compra
+    
+class VentaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Venta
+        fields = '__all__'
 
 class InventarioSerializer(serializers.ModelSerializer):
+    producto = ProductoSerializer(read_only=True)
     class Meta:
         model = Inventario
         fields = '__all__'

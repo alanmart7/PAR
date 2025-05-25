@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario
-from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer, InventarioSerializer
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta
+from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer, InventarioSerializer, VentaSerializer
 from rest_framework.views import APIView
 
 # Lista de clientes GET Y POST
@@ -199,7 +199,7 @@ class ProveedorDetail(APIView):
         try:
             proveedor = Proveedor.objects.get(pk=pk)  # Buscar proveedor por ID
             proveedor.nombre = request.data.get('nombre', proveedor.nombre)  # Actualizar campos
-            proveedor.direccion = request.data.get('correo', proveedor.correo)
+            proveedor.correo = request.data.get('correo', proveedor.correo)
             proveedor.telefono = request.data.get('telefono', proveedor.telefono)
             proveedor.save()
             data = {"id": proveedor.id, "nombre": proveedor.nombre, "correo": proveedor.correo, "telefono": proveedor.telefono}
@@ -313,7 +313,71 @@ class CompraDetail(APIView):
             return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         compra.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class VentaList(APIView):
+    def get(self, request):
+        ventas = Venta.objects.all()
+        data = [
+            {
+                "id": v.id,
+                "fecha": v.fecha,
+                "cantidad": v.cantidad,
+                "producto_id": v.producto.id,
+                "producto_nombre": v.producto.nombre,
+                "cliente_id": v.cliente.id,
+                "cliente_nombre": v.cliente.nombre,
+            }
+            for v in ventas
+        ]
+        return Response(data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        producto_id = request.data.get("producto_id")
+        cliente_id = request.data.get("cliente_id")
+        cantidad = int(request.data.get("cantidad"))
+        print("Producto ID:", producto_id)
+        print("Cliente ID:", cliente_id)
+        print("Cantidad:", cantidad)
+        try:
+            producto = Producto.objects.get(id=producto_id)
+            cliente = Cliente.objects.get(id=cliente_id)
+        except Producto.DoesNotExist:
+            return Response({"error": "Producto no encontrado"}, status=status.HTTP_400_BAD_REQUEST)
+        except Cliente.DoesNotExist:
+            return Response({"error": "Cliente no encontrado"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            inventario = Inventario.objects.get(producto_id=producto.id)
+        except Inventario.DoesNotExist:
+            return Response({"error": "No hay inventario para este producto"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar si hay suficiente stock
+        if inventario.stock < cantidad:
+            return Response({"error": f"Stock insuficiente. Solo hay {inventario.stock} unidades disponibles."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Registrar la venta
+        venta = Venta.objects.create(
+            producto=producto,
+            cliente=cliente,
+            cantidad=cantidad,
+            fecha=request.data.get("fecha")
+        )
+
+        # Actualizar el inventario
+        inventario.stock -= cantidad
+        inventario.save()
+
+        return Response({
+            "id": venta.id,
+            "fecha": venta.fecha,
+            "cantidad": venta.cantidad,
+            "producto_id": venta.producto.id,
+            "cliente_id": venta.cliente.id,
+            "mensaje": "Venta registrada y stock actualizado correctamente"
+        }, status=status.HTTP_201_CREATED)
+
+    
 class InventarioViewSet(viewsets.ModelViewSet):
     queryset = Inventario.objects.all()
     serializer_class = InventarioSerializer
