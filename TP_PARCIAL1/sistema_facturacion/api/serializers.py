@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta, Auditoria
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:

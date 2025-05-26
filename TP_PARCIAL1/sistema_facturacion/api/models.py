@@ -65,3 +65,14 @@ class Inventario(models.Model):
 
     def __str__(self):
         return f"{self.producto.nombre}: {self.stock} unidades"
+
+class Auditoria(models.Model):
+    modelo = models.CharField(max_length=100)
+    operacion = models.CharField(max_length=10)  # 'CREATE', 'UPDATE', 'DELETE'
+    datos_anteriores = models.TextField(null=True, blank=True)
+    datos_nuevos = models.TextField(null=True, blank=True)
+    id_registro = models.IntegerField(null=True, blank=True)  # ID del objeto auditado
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.fecha} - {self.operacion} en {self.modelo} (ID {self.id_registro})"
