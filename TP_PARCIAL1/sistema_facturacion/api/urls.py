@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail, CompraList, CompraDetail, InventarioViewSet, VentaList, ReporteMovimientosMensualesView
+from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail, CompraList, CompraDetail, InventarioViewSet, VentaList, ReporteMovimientosMensualesView, ProductosMasVendidosView, TopClientesView, TopProveedoresView, ReporteUtilidadesView
 
 '''
 from .views import ClienteViewSet, ProductoViewSet, FacturaViewSet,
@@ -45,8 +45,20 @@ urlpatterns = [
     path('ventas/', VentaList.as_view(), name='venta-list'),
 
     #Movimientos Mensuales
-    path('reporte-mensual/', ReporteMovimientosMensualesView.as_view(), name='reporte-mensual'),
+    path('  ', ReporteMovimientosMensualesView.as_view(), name='reporte-mensual'),
+    
+    #Reporte top productos 
+    path('reporte-productos-mas-vendidos/', ProductosMasVendidosView.as_view(), name='reporte-productos-mas-vendidos'),
 
+    #Reporte top clientes TopClientesView
+    path('reporte-top-clientes/', TopClientesView.as_view(), name='reporte-top-clientes'),
+    
+    #Reporte Top proveedores
+    path('reporte-top-proveedores/', TopProveedoresView.as_view(), name='reporte-top-proveedores'),
+    
+    #Reporte Top Utilidades
+    path('reporte-utilidades/', ReporteUtilidadesView.as_view(), name='reporte-utilidades'),
+    
     path('', include(router.urls)),
     
 ]

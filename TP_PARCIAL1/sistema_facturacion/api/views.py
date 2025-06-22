@@ -6,7 +6,8 @@ from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inve
 from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer, InventarioSerializer, VentaSerializer
 from rest_framework.views import APIView
 from datetime import datetime
-from django.db.models import Sum
+from django.db.models import Sum, F, FloatField
+
 from calendar import monthrange
 
 
@@ -590,4 +591,160 @@ class ReporteMovimientosMensualesView(APIView):
             "ventas": ventas_detalle,
             "compras": compras_detalle
         }, status=status.HTTP_200_OK)
+        
+class ProductosMasVendidosView(APIView):
+    def get(self, request):
+        mes = request.query_params.get('mes')  # formato esperado: 'YYYY-MM'
 
+        if not mes:
+            return Response({"error": "Debe enviar el parámetro 'mes' (ejemplo: 2025-05)"}, status=400)
+
+        try:
+            year, month = map(int, mes.split('-'))
+        except ValueError:
+            return Response({"error": "Formato de mes inválido. Use 'YYYY-MM'"}, status=400)
+
+        # Definir rango de fechas
+        fecha_inicio = datetime(year, month, 1)
+        if month == 12:
+            fecha_fin = datetime(year + 1, 1, 1)
+        else:
+            fecha_fin = datetime(year, month + 1, 1)
+
+        # Consultar productos más vendidos en ese mes
+        productos_vendidos = (
+            Venta.objects.filter(fecha__gte=fecha_inicio, fecha__lt=fecha_fin)
+            .values('producto__nombre')
+            .annotate(cantidad_total=Sum('cantidad'))
+            .order_by('-cantidad_total')[:15]  # top 15
+        )
+
+        # Armar lista con nombre legible
+        resultado = [
+            {
+                "producto": item["producto__nombre"],
+                "cantidad_total": item["cantidad_total"]
+            }
+            for item in productos_vendidos
+        ]
+
+        return Response({
+            "mes": mes,
+            "productos_mas_vendidos": resultado
+        }, status=status.HTTP_200_OK)
+        
+class TopClientesView(APIView):
+    def get(self, request):
+        mes = request.query_params.get('mes')  # formato esperado: 'YYYY-MM'
+
+        if not mes:
+            return Response({"error": "Debe enviar el parámetro 'mes' (ejemplo: 2025-05)"}, status=400)
+
+        try:
+            year, month = map(int, mes.split('-'))
+        except ValueError:
+            return Response({"error": "Formato de mes inválido. Use 'YYYY-MM'"}, status=400)
+
+        # Definir rango de fechas para ese mes
+        fecha_inicio = datetime(year, month, 1)
+        if month == 12:
+            fecha_fin = datetime(year + 1, 1, 1)
+        else:
+            fecha_fin = datetime(year, month + 1, 1)
+
+        # Consultar top 15 clientes por total ventas (cantidad * precio_venta) en ese rango
+        clientes_top = (
+            Venta.objects.filter(fecha__gte=fecha_inicio, fecha__lt=fecha_fin)
+            .values('cliente__id', 'cliente__nombre')
+            .annotate(
+                total_ventas=Sum(F('cantidad') * F('producto__precio_venta'), output_field=FloatField())
+            )
+            .order_by('-total_ventas')[:15]
+        )
+
+        resultado = [
+            {
+                "cliente_id": item['cliente__id'],
+                "nombre_cliente": item['cliente__nombre'],
+                "total_ventas": round(item['total_ventas'], 2) if item['total_ventas'] else 0
+            }
+            for item in clientes_top
+        ]
+
+        return Response({
+            "mes": mes,
+            "top_clientes": resultado
+        }, status=status.HTTP_200_OK)
+        
+class TopProveedoresView(APIView):
+    def get(self, request):
+        mes = request.query_params.get('mes')  # esperado 'YYYY-MM'
+
+        if not mes:
+            return Response({"error": "Debe enviar el parámetro 'mes' (ejemplo: 2025-05)"}, status=400)
+
+        try:
+            year, month = map(int, mes.split('-'))
+        except ValueError:
+            return Response({"error": "Formato de mes inválido. Use 'YYYY-MM'"}, status=400)
+
+        fecha_inicio = datetime(year, month, 1)
+        if month == 12:
+            fecha_fin = datetime(year + 1, 1, 1)
+        else:
+            fecha_fin = datetime(year, month + 1, 1)
+
+        proveedores_top = (
+            Compra.objects.filter(fecha__gte=fecha_inicio, fecha__lt=fecha_fin)
+            .values('proveedor__id', 'proveedor__nombre')
+            .annotate(
+                total_compras=Sum(F('cantidad') * F('producto__precio_compra'), output_field=FloatField())
+            )
+            .order_by('-total_compras')[:15]
+        )
+
+        resultado = [
+            {
+                "proveedor_id": item['proveedor__id'],
+                "nombre_proveedor": item['proveedor__nombre'],
+                "total_compras": round(item['total_compras'], 2) if item['total_compras'] else 0
+            }
+            for item in proveedores_top
+        ]
+
+        return Response({
+            "mes": mes,
+            "top_proveedores": resultado
+        }, status=status.HTTP_200_OK)
+        
+class ReporteUtilidadesView(APIView):
+    def get(self, request):
+        mes = request.query_params.get('mes')  # Formato 'YYYY-MM'
+
+        if not mes:
+            return Response({"error": "Debe enviar el parámetro 'mes' (ejemplo: 2025-05)"}, status=400)
+
+        try:
+            year, month = map(int, mes.split('-'))
+        except ValueError:
+            return Response({"error": "Formato de mes inválido. Use 'YYYY-MM'"}, status=400)
+
+        fecha_inicio = datetime(year, month, 1)
+        fecha_fin = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+
+        # Total ventas (cantidad * precio_venta)
+        ventas_total = Venta.objects.filter(fecha__gte=fecha_inicio, fecha__lt=fecha_fin) \
+            .aggregate(total=Sum(F('cantidad') * F('producto__precio_venta'), output_field=FloatField()))['total'] or 0
+
+        # Total costos (cantidad * precio_compra)
+        costos_total = Compra.objects.filter(fecha__gte=fecha_inicio, fecha__lt=fecha_fin) \
+            .aggregate(total=Sum(F('cantidad') * F('producto__precio_compra'), output_field=FloatField()))['total'] or 0
+
+        utilidad = ventas_total - costos_total
+
+        return Response({
+            "mes": mes,
+            "ventas_totales": round(ventas_total, 2),
+            "costos_totales": round(costos_total, 2),
+            "utilidad": round(utilidad, 2)
+        }, status=status.HTTP_200_OK)
