@@ -1,13 +1,14 @@
 import json 
+import uuid
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta, Auditoria
+from .models import Cliente, Producto, Factura, Proveedor, Reporte, Compra, Inventario, Venta, Auditoria, Facturas
 from .serializers import ClienteSerializer, ProductoSerializer, FacturaSerializer, ProveedorSerializer, ReporteSerializer, CompraSerializer, InventarioSerializer, VentaSerializer
 from rest_framework.views import APIView
 from datetime import datetime
 from django.db.models import Sum, F, FloatField
-
+from django.utils.timezone import now
 from calendar import monthrange
 
 
@@ -748,3 +749,129 @@ class ReporteUtilidadesView(APIView):
             "costos_totales": round(costos_total, 2),
             "utilidad": round(utilidad, 2)
         }, status=status.HTTP_200_OK)
+
+class ReporteComprasPorFechaView(APIView):
+    def get(self, request):
+        desde = request.query_params.get('desde')
+        hasta = request.query_params.get('hasta')
+
+        if not desde or not hasta:
+            return Response({"error": "Debe enviar los parámetros 'desde' y 'hasta' en formato YYYY-MM-DD"}, status=400)
+
+        try:
+            fecha_desde = datetime.strptime(desde, "%Y-%m-%d")
+            fecha_hasta = datetime.strptime(hasta, "%Y-%m-%d")
+        except ValueError:
+            return Response({"error": "Fechas inválidas. Formato requerido: YYYY-MM-DD"}, status=400)
+
+        compras = Compra.objects.filter(fecha__range=(fecha_desde, fecha_hasta)).values(
+            'fecha',
+            'producto__nombre',
+            'proveedor__nombre',
+            'cantidad',
+            'producto__precio_compra'
+        ).order_by('fecha')
+
+        resultado = []
+        for c in compras:
+            total = c['cantidad'] * c['producto__precio_compra']
+            resultado.append({
+                "fecha": c['fecha'].strftime("%Y-%m-%d"),  # formato string para JSON
+                "producto": c['producto__nombre'],
+                "proveedor": c['proveedor__nombre'],
+                "cantidad": c['cantidad'],
+                "total_comprado": total
+            })
+
+        return Response({
+            "desde": desde,
+            "hasta": hasta,
+            "compras": resultado
+        })
+class ReporteVentasPorFechaView(APIView):
+    def get(self, request):
+        desde = request.query_params.get('desde')
+        hasta = request.query_params.get('hasta')
+
+        if not desde or not hasta:
+            return Response({"error": "Debe enviar los parámetros 'desde' y 'hasta' en formato YYYY-MM-DD"}, status=400)
+
+        try:
+            fecha_desde = datetime.strptime(desde, "%Y-%m-%d").date()
+            fecha_hasta = datetime.strptime(hasta, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"error": "Fechas inválidas. Formato requerido: YYYY-MM-DD"}, status=400)
+
+        ventas = Venta.objects.filter(fecha__range=(fecha_desde, fecha_hasta)).values(
+            'fecha',
+            'producto__nombre',
+            'cliente__nombre',
+            'cantidad',
+            'producto__precio_venta'
+        ).order_by('fecha')
+
+        resultado = []
+        for v in ventas:
+            total = v['cantidad'] * v['producto__precio_venta']
+            resultado.append({
+                "fecha": v['fecha'].strftime("%Y-%m-%d"),
+                "producto": v['producto__nombre'],
+                "cliente": v['cliente__nombre'],
+                "cantidad": v['cantidad'],
+                "total_venta": total
+            })
+
+        return Response({
+            "desde": desde,
+            "hasta": hasta,
+            "ventas": resultado
+        })
+
+class CrearFacturaCompraView(APIView):
+    def post(self, request, compra_id):
+        try:
+            compra = Compra.objects.get(id=compra_id)
+        except Compra.DoesNotExist:
+            return Response({"error": "Compra no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+        if hasattr(compra, 'factura'):
+            return Response({"error": "Factura ya generada para esta compra"}, status=status.HTTP_400_BAD_REQUEST)
+
+        total = compra.cantidad * compra.producto.precio_compra  # Suponiendo que precio_compra existe en Producto
+        nro_factura = str(uuid.uuid4())[:8].upper()  # Genera un nro factura único simple
+
+        factura = Facturas.objects.create(
+            nro_factura=nro_factura,
+            tipo='compra',
+            fecha=now().date(),
+            total=total,
+            compra=compra
+        )
+        return Response({"mensaje": "Factura creada", "factura_id": factura.id})
+
+class CrearFacturaVentaView(APIView):
+    def post(self, request, venta_id):
+        try:
+            venta = Venta.objects.get(id=venta_id)
+        except Venta.DoesNotExist:
+            return Response({"error": "Venta no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+        if hasattr(venta, 'factura'):
+            return Response({"error": "Factura ya generada para esta venta"}, status=status.HTTP_400_BAD_REQUEST)
+
+        total = venta.cantidad * venta.producto.precio_venta  # Suponiendo que precio_venta existe en Producto
+        nro_factura = str(uuid.uuid4())[:8].upper()
+
+        factura = Facturas.objects.create(
+            nro_factura=nro_factura,
+            tipo='venta',
+            fecha=now().date(),
+            total=total,
+            venta=venta
+        )
+        return Response({"mensaje": "Factura creada", "factura_id": factura.id})
+
+class ListarFacturasView(APIView):
+    def get(self, request):
+        facturas = Facturas.objects.all().values('id', 'nro_factura', 'tipo', 'fecha', 'total')
+        return Response(list(facturas))

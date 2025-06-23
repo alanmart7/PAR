@@ -76,3 +76,21 @@ class Auditoria(models.Model):
 
     def __str__(self):
         return f"{self.fecha} - {self.operacion} en {self.modelo} (ID {self.id_registro})"
+
+class Facturas(models.Model):
+    TIPO_CHOICES = (
+        ('compra', 'Compra'),
+        ('venta', 'Venta'),
+    )
+
+    nro_factura = models.CharField(max_length=50, unique=True)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    fecha = models.DateField(auto_now_add=True)
+    total = models.FloatField()
+
+    # Relación opcional a compra o venta (solo una debe existir)
+    compra = models.OneToOneField('Compra', on_delete=models.CASCADE, null=True, blank=True, related_name='factura')
+    venta = models.OneToOneField('Venta', on_delete=models.CASCADE, null=True, blank=True, related_name='factura')
+
+    def __str__(self):
+        return f"{self.nro_factura} - {self.get_tipo_display()}"

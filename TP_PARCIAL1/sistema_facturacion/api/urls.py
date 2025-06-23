@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail, CompraList, CompraDetail, InventarioViewSet, VentaList, ReporteMovimientosMensualesView, ProductosMasVendidosView, TopClientesView, TopProveedoresView, ReporteUtilidadesView
+from .views import ProveedorList, ProveedorDetail, ReporteList, ReporteDetail, ClienteList, ClienteDetail, ProductoList, ProductoDetail,FacturaList, FacturaDetail, CompraList, CompraDetail, InventarioViewSet, VentaList, ReporteMovimientosMensualesView, ProductosMasVendidosView, TopClientesView, TopProveedoresView, ReporteUtilidadesView,ReporteComprasPorFechaView,ReporteVentasPorFechaView,CrearFacturaCompraView,CrearFacturaVentaView,ListarFacturasView
 
 '''
 from .views import ClienteViewSet, ProductoViewSet, FacturaViewSet,
@@ -45,7 +45,7 @@ urlpatterns = [
     path('ventas/', VentaList.as_view(), name='venta-list'),
 
     #Movimientos Mensuales
-    path('  ', ReporteMovimientosMensualesView.as_view(), name='reporte-mensual'),
+    path('reporte-mensual/', ReporteMovimientosMensualesView.as_view(), name='reporte-mensual'),
     
     #Reporte top productos 
     path('reporte-productos-mas-vendidos/', ProductosMasVendidosView.as_view(), name='reporte-productos-mas-vendidos'),
@@ -58,7 +58,18 @@ urlpatterns = [
     
     #Reporte Top Utilidades
     path('reporte-utilidades/', ReporteUtilidadesView.as_view(), name='reporte-utilidades'),
+
+    #Reporte de compras
+    path('reporte-compras-fechas/', ReporteComprasPorFechaView.as_view(), name='reporte_compras_fechas'),
     
+    #Reporte de ventas
+    path('reporte-ventas-fechas/', ReporteVentasPorFechaView.as_view(), name='reporte_ventas_fechas'),
+
+    #Asignacion de facturas
+    path('factura/compra/<int:compra_id>/', CrearFacturaCompraView.as_view(), name='crear_factura_compra'),
+    path('factura/venta/<int:venta_id>/', CrearFacturaVentaView.as_view(), name='crear_factura_venta'),
+    path('facturass/', ListarFacturasView.as_view(), name='listar_facturas'),
+
     path('', include(router.urls)),
     
 ]
